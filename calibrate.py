@@ -125,27 +125,6 @@ plt.tight_layout()
 plt.savefig("calibration_fit.png")
 plt.show()
 
-plt.figure(figsize=(7,6))
-plt.scatter(x, y, s=14, alpha=0.7, label="Data")
-
-### Residuals Plot
-minxy = min(np.min(x), np.min(y))
-maxxy = max(np.max(x), np.max(y))
-plt.plot([minxy, maxxy], [minxy, maxxy], "k--", lw=2, label="1:1 Ideal")
-plt.plot([minxy, maxxy], [a*minxy + b, a*maxxy + b], "r-", lw=2, label="Regression Fit")
-
-for xi, yi, yfi in zip(x, y, y_fit):
-    plt.plot([xi, xi], [yi, yfi], color="gray", alpha=0.4)
-
-plt.xlabel("MH-Z16 CO2 [ppm]")
-plt.ylabel("LI-COR 7810 CO2 [ppm]")
-plt.title("1:1 Agreement Plot with Residuals")
-plt.grid(True)
-plt.legend()
-plt.tight_layout()
-plt.savefig("residual_plot.png")
-plt.show()
-
 ### Timeseries Plot
 plt.figure(figsize=(10,5))
 plt.plot(tdata["timestamp"], tdata["tco2"], "b.", alpha=0.3, label="Target (All in Window)")
@@ -164,3 +143,72 @@ plt.legend()
 plt.tight_layout()
 plt.savefig("training_data_used.png")
 plt.show()
+
+
+
+### Residuals (y - y_fit)
+residuals = y - y_fit
+mu = np.mean(residuals)
+sigma = np.std(residuals)
+
+# 95% confidence bounds
+ci_upper = mu + 1.96 * sigma
+ci_lower = mu - 1.96 * sigma
+
+### Residuals vs CO2
+plt.figure(figsize=(7,5))
+plt.scatter(x, residuals, s=14, alpha=0.7, label="Residuals")
+plt.axhline(mu, color="red", linestyle="--", linewidth=2, label="Mean Residual")
+plt.axhline(ci_upper, color="green", linestyle=":", linewidth=2, label="95% CI")
+plt.axhline(ci_lower, color="green", linestyle=":", linewidth=2)
+
+plt.xlabel("MH-Z16 CO2 [ppm]")
+plt.ylabel("Residual (LI-COR - Fit) [ppm]")
+plt.title("Residuals vs MH-Z16 CO2")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("residuals_vs_co2.png")
+plt.show()
+
+### Residuals Histogram
+plt.figure(figsize=(7,5))
+plt.hist(residuals, bins=40, alpha=0.7, color="gray")
+plt.axvline(mu, color="red", linestyle="--", linewidth=2, label="Mean")
+plt.axvline(ci_upper, color="green", linestyle=":", linewidth=2, label="95% CI")
+plt.axvline(ci_lower, color="green", linestyle=":", linewidth=2)
+
+plt.title("Residuals Histogram")
+plt.xlabel("Residual [ppm]")
+plt.ylabel("Count")
+plt.grid(True)
+plt.legend()
+plt.tight_layout()
+plt.savefig("residual_histogram.png")
+plt.show()
+
+### Residuals Violin Plot
+plt.figure(figsize=(5,6))
+plt.violinplot(residuals, showmeans=True, showextrema=True)
+plt.axhline(0, color="black", linestyle="--", linewidth=1)
+
+plt.title("Residuals Violin Plot")
+plt.ylabel("Residual [ppm]")
+plt.tight_layout()
+plt.savefig("residual_violin.png")
+plt.show()
+
+
+
+
+### Save Calibration Coefficients
+cal_out = pd.DataFrame({
+    "slope":     [a],
+    "intercept": [b],
+    "R2":        [r2],
+    "RMSE":      [rmse]
+})
+
+# save to csv
+cal_out.to_csv("calibration_coefficients.csv", index=False)
+print("Calibration coefficients saved to calibration_coefficients.csv")
